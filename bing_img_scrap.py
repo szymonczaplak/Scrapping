@@ -3,8 +3,6 @@ import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from urllib.request import urlretrieve
-from selenium.webdriver.common.keys import Keys
-
 
 class Sel():
     def __init__(self, url):
@@ -13,23 +11,19 @@ class Sel():
         self.base_url = url
         self.verificationErrors = []
         self.accept_next_alert = True
-
-    def get_images(self, what, scrolls):
+    def get_images(self, explicit_content=False):
         print("Getting images...")
         driver = self.driver
+        if explicit_content:
+            driver.get("https://www.bing.com/account/general?ru=%2fimages%2fsearch%3fq%3dporn%26qs%3dn%26form%3dQBLH%26scope%3dimages%26sp%3d-1%26pq%3dporn%26sc%3d5-4%26sk%3d%26cvid%3d377FB1D8916E4E048F0A9BC444258C39")
+            driver.find_element_by_id("adlt_set_off").click()
+            time.sleep(2)
+            driver.find_element_by_id("sv_btn").click()
+            time.sleep(2)
+            driver.find_element_by_id("adlt_confirm").click()
 
         driver.get(self.base_url)
-        input_element = driver.find_element_by_name("q")
-        input_element.send_keys(what)
-        input_element.send_keys(Keys.ENTER)
-        time.sleep(10)
-        driver.find_element_by_link_text("Grafika").click()
-        for i in range(scrolls):
-            if i % 4 == 0 and i > 0:
-                try:
-                    driver.find_element_by_id("smb").click()
-                except:
-                    print("No button to click")
+        for i in range(1,20):
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(4)
         html_source = driver.page_source
@@ -37,17 +31,15 @@ class Sel():
         soup = BeautifulSoup(data, features="lxml")
         images = []
         for image in soup.find_all("img"):
-            try:
-                images.append(image['src'])
-            except:
-                continue
-
+            images.append(image['src'])
         return images
 
     def save_files(self, urls):
         print("Saving...")
         counter = 0
         for adress in urls:
+            if re.match("^/", adress):
+                continue
             try:
                 urlretrieve(adress, "images\\image{}.jpg".format(counter))
             except:
@@ -55,8 +47,13 @@ class Sel():
             counter += 1
 
 
-url = "https://www.google.com"
+def get_bing_url(name):
+    return "https://www.bing.com/images/search?q={}&FORM=HDRSC2".format(name)
+
+
 wanted_pics = "hedgehog"
+url = get_bing_url(wanted_pics)
 engine = Sel(url)
-images = engine.get_images(wanted_pics, 5)
+images = engine.get_images(False)
 engine.save_files(images)
+
